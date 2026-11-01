@@ -3,80 +3,49 @@
 #include <memory>
 using namespace std;
 
-// Resource class
 class Resource
 {
+    string name;
 public:
-    Resource()
-    {
-        cout << "Resource acquired" << endl;
+    Resource(string n) : name(n) {
+        cout << "Resource [" << name << "] acquired" << endl;
     }
-
-    ~Resource()
-    {
-        cout << "Resource released" << endl;
+    ~Resource() {
+        cout << "Resource [" << name << "] released" << endl;
     }
-
-    void use()
-    {
-        cout << "Resource is being used" << endl;
+    void use() {
+        cout << "Using resource [" << name << "]" << endl;
     }
 };
 
-// Manual Smart Pointer using RAII
-class MySmartPointer
-{
-private:
-    Resource* ptr;
+int main() {
+    cout << "--- Modified Smart Pointer Demo ---" << endl;
 
-public:
-    explicit MySmartPointer(Resource* p)
+    // 1. Using unique_ptr with move semantics
     {
-        ptr = p;
-    }
+        unique_ptr<Resource> p1 = make_unique<Resource>("Alpha");
+        p1->use();
+        
+        // Transfer ownership
+        unique_ptr<Resource> p2 = move(p1);
+        if (!p1) cout << "p1 is now null after move" << endl;
+        p2->use();
+    } // p2 goes out of scope here, releasing "Alpha"
 
-    ~MySmartPointer()
+    cout << "\n--- Shared Pointer Reference Count Tracking ---" << endl;
     {
-        delete ptr;
-        cout << "Manual smart pointer destroyed" << endl;
-    }
+        shared_ptr<Resource> sp1 = make_shared<Resource>("Beta");
+        cout << "Initial count: " << sp1.use_count() << endl;
 
-    Resource* operator->()
-    {
-        return ptr;
-    }
+        {
+            shared_ptr<Resource> sp2 = sp1;
+            cout << "Count after sp2 copy: " << sp1.use_count() << endl;
+            sp2->use();
+        } // sp2 goes out of scope here
 
-    // Disable copying to prevent double deletion
-    MySmartPointer(const MySmartPointer&) = delete;
-    MySmartPointer& operator=(const MySmartPointer&) = delete;
-};
+        cout << "Count after sp2 goes out of scope: " << sp1.use_count() << endl;
+    } // sp1 goes out of scope here, releasing "Beta"
 
-int main()
-{
-    cout << "----- Manual RAII Smart Pointer -----" << endl;
-    {
-        MySmartPointer smartPtr(new Resource());
-        smartPtr->use();
-    }
-
-    cout << "\n----- unique_ptr -----" << endl;
-    {
-        unique_ptr<Resource> uniquePtr = make_unique<Resource>();
-        uniquePtr->use();
-    }
-
-    cout << "\n----- shared_ptr -----" << endl;
-    {
-        shared_ptr<Resource> sharedPtr1 = make_shared<Resource>();
-        shared_ptr<Resource> sharedPtr2 = sharedPtr1;
-
-        sharedPtr1->use();
-
-        cout << "Shared Pointer Count: "
-             << sharedPtr1.use_count() << endl;
-    }
-
-    cout << "\nProgram completed successfully." << endl;
-
+    cout << "Program completed successfully." << endl;
     return 0;
 }
